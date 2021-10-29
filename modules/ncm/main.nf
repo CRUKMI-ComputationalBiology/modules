@@ -11,27 +11,30 @@ process NCM {
         mode: params.publish_dir_mode,
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), meta:[:], publish_by_meta:[]) }
 
-    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "https://hub.docker.com/r/goalconsortium/profiling_qc"
-    } else {
-        container "https://hub.docker.com/r/goalconsortium/profiling_qc"
-    }
+  //  if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+    //    container "docker://goalconsortium/profiling_qc:1.0.9"
+   // } else {
+     //   container "docker://goalconsortium/profiling_qc:1.0.9"
+    // }
 
     input:
-    file (vcf) from vcf_ch.collect()
-    file snp from file(params.ngsCheckmateBed)
+    tuple val(meta), path(vcf)
+    path  snp
 
     output:
-    file ("*") into ncm_ch
+    tuple val(meta), path("*") 
     path "versions.yml"          , emit: versions
 
     script:
 
     """
+    ml apps/python/3.7.0
+    ml apps/ngscheckmate/1.0.0_python-3.7.0
+    
 	grep -v "alt" ${snp} > SNP.bed 
     ls -d "\${PWD}"/*.vcf > vcfList.txt 
 
-	python ncm/ncm.py -V -l vcfList.txt -bed SNP.bed -O .
+	python '/mnt/panfs1/scratch/wsspaces/kmurat-nfcore-0/DSL2/GIT/ncm.py' -V -l vcfList.txt -bed SNP.bed -O .
 
     cat <<-END_VERSIONS > versions.yml
     ${getProcessName(task.process)}:

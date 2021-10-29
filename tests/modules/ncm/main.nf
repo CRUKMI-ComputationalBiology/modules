@@ -6,7 +6,9 @@ include { NCM } from '../../../modules/ncm/main.nf' addParams( options: [:] )
 
 workflow test_ncm {
     
-    input = file(params.test_data['sarscov2']['illumina']['test_single_end_bam'], checkIfExists: true)
+ input = [[ id:'test' ],
+    file('/mnt/panfs1/scratch/wsspaces/kmurat-nfcore-0/DSL2/GIT/Input.vcf', checkIfExists: true)]
+ snp = file('/lmod/apps/ngscheckmate/1.0.0/SNP/SNP_GRCh38_hg38_woChr.bed', checkIfExists: true)
 
-    NCM ( input )
+    NCM ( input, snp )
 }
