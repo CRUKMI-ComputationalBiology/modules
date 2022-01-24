@@ -5,36 +5,37 @@ params.options = [:]
 options        = initOptions(params.options)
 
 process BAMCMP {
-    tag '$bam'
+    tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}",
-        mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, publish_dir:getSoftwareName(task.process), meta:[:], publish_by_meta:[]) }
+    publishDir "${params.outdir}"
 
-    conda (params.enable_conda ? "bamcmp" : null)
+
+    conda (params.enable_conda ? "bioconda::bamcmp=2.2" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "docker://crukmi/bamcmp:2.0.0"
     } else {
         container "quay.io/biocontainers/bamcmp"
     }
 
-    input:
-    tuple val(meta), path(sample_bam), path(contaminant_bam)
+   input:
+    tuple val(meta), path(sample), path(contaminant)
 
     output:
-    path "*.bam", emit: bam
-    path "versions.yml"          , emit: versions
+    tuple val(meta), path("*.bam"), emit: bam
+    path "versions.yml"           , emit: versions
 
     script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
     
-  //  def prefix   = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
     
     """
-    bamcmp -s "as" \\
-    -1 $sample_bam \\ 
-    -2 $contaminant_bam \\
-    -A firstbetter.bam 
-
+   bamcmp \\
+   -s "as" \\
+   -1 $sample \\
+   -2 $contaminant \\
+   -A ${prefix}.bam \\
+   
     cat <<-END_VERSIONS > versions.yml
     ${getProcessName(task.process)}:
         ${getSoftwareName(task.process)}: \$( samtools --version 2>&1 | sed 's/^.*samtools //; s/Using.*\$//' )
